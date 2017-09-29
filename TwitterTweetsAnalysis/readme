@@ -1,0 +1,4 @@
+Twitter Sentiment Analysis :-
+
+The increasing popularity of the micro-blogging sites like Twitter, which facilitates users to exchange short messages (aka tweets) is an impetus for data analytics tasks for varied purposes, ranging from business intelligence to nation security. Twitter is being used by a large number of users for events update and sentiment expression. Since tweets are generally unstructured in nature and do not follow grammatical structures, parsing techniques generally do not work well due to incorrect parts-of-speech assignment to individual words. 
+For this project I propose to use Twitter API along with R’s twitteR library to extract tweets from twitter and then apply Text-Mining on the extracted twitter data using R’s tm library.
