@@ -1,6 +1,6 @@
 import tweepy
 import json
-from database import Database
+from common.database import Database
 
 
 class StreamListener(tweepy.StreamListener):

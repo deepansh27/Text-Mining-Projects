@@ -3,10 +3,10 @@ import tweepy
 
 Topics = ['#bigdata', '#AI', '#datascience', '#machinelearning', '#ml', '#iot']
 
-CONSUMER_KEY = "kizmwgp5SIeruTUEke7MCjaeM"
-CONSUMER_SECRET = "nHz6vlbeFYZC3OX5hRIDoma6u7Kw7PwlbZBd24pe83pwU06hcw"
-ACCESS_TOKEN = "824661471699333124-IenORgvFIIG93zFoXOewiKrYhzirWw2"
-ACCESS_TOKEN_SECRET = "2bwKUlCgETyQ7Ahu8UhULHzeYKMdQaBaZLZmWx1fq2uOd"
+CONSUMER_KEY = ""
+CONSUMER_SECRET = ""
+ACCESS_TOKEN = ""
+ACCESS_TOKEN_SECRET = ""
 
 
 auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
