@@ -1,38 +1,65 @@
 Mining-Twitter-Data-for-Sentiment-Analysis
 
+
 Sentiment Analysis using tweepy,NLTK and Textblob
 
-Using OAuth to make connection twitter
+Using tweepy extract all the tweets related to the given Topics:
 
+
+from twitterStreamer import StreamListener
 import tweepy
-from tweepy import OAuthHandler
- 
-consumer_key = 'YOUR-CONSUMER-KEY'
-consumer_secret = 'YOUR-CONSUMER-SECRET'
-access_token = 'YOUR-ACCESS-TOKEN'
-access_secret = 'YOUR-ACCESS-SECRET'
- 
-auth = OAuthHandler(consumer_key, consumer_secret)
-auth.set_access_token(access_token, access_secret)
- 
-api = tweepy.API(auth)
 
-Collecting tweets in json file
+Topics = ['#bigdata', '#AI', '#datascience', '#machinelearning', '#ml', '#iot']
 
-class MyListener(StreamListener):
- 
-    def on_data(self, data):
-        try:
-            with open('python.json', 'a') as f:
-                f.write(data)
-                return True
-        except BaseException as e:
-            print("Error on_data: %s" % str(e))
-        return True
- 
-    def on_error(self, status):
-        print(status)
-The key attributes of the tweets pulled out are :
+CONSUMER_KEY = ""
+CONSUMER_SECRET = ""
+ACCESS_TOKEN = ""
+ACCESS_TOKEN_SECRET = ""
+
+
+auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+auth.set_access_token(ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+
+
+#Set up the listener. The 'wait_on_rate_limit=True' is needed to help with Twitter API rate limiting.
+
+listener = StreamListener(api=tweepy.API(wait_on_rate_limit=True))
+streamer = tweepy.Stream(auth=auth, listener=listener)
+print("Tracking: " + str(Topics))
+streamer.filter(track=Topics)
+
+
+
+
+
+Inserting the tweets into MongoDB :
+
+
+
+def on_data(self, data):
+   # This is the meat of the script...it connects to your mongoDB and stores the tweet
+   try:
+       # Use twitterdb database. If it doesn't exist, it will be created.
+       db = Database.initialize()
+
+       # Decode the JSON from Twitter
+       datajson = json.loads(data)
+
+       # grab the 'created_at' data from the Tweet to use for display
+       created_at = datajson['created_at']
+
+       # print out a message to the screen that we have collected a tweet
+       print("Tweet collected at " + str(created_at))
+
+       # insert the data into the mongoDB into a collection called twitter_search
+       # if twitter_search doesn't exist, it will be created.
+       Database.insert('twitter_search', datajson)
+   except Exception as e:
+       print(e)
+
+
+
 
 text: the text of the tweet itself
 created_at: the date of creation
@@ -45,67 +72,57 @@ user: the author’s full profile
 entities: list of entities like URLs, @-mentions, hashtags and symbols
 in_reply_to_user_id: user identifier if the tweet is a reply to a specific user
 in_reply_to_status_id: status identifier id the tweet is a reply to a specific status
-Processing tweets
-Tokenizing the tweet
-Tokenizing @-mentions, emoticons, URLs and #hash-tags as individual tokens.
-emoticons_str = r"""
-    (?:
-        [:=;] # Eyes
-        [oO\-]? # Nose (optional)
-        [D\)\]\(\]/\\OpP] # Mouth
-    )"""
- 
-regex_str = [
-    emoticons_str,
-    r'<[^>]+>', # HTML tags
-    r'(?:@[\w_]+)', # @-mentions
-    r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)", # hash-tags
-    r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+', # URLs
- 
-    r'(?:(?:\d+,?)+(?:\.?\d+)?)', # numbers
-    r"(?:[a-z][a-z'\-_]+[a-z])", # words with - and '
-    r'(?:[\w_]+)', # other words
-    r'(?:\S)' # anything else
-]
-The regular expressions are compiled with the flags re.VERBOSE, to allow spaces in the regexp to be ignored (see the multi-line emoticons regexp), and re.IGNORECASE to catch both upper and lowercases. Thetokenize() function simply catches all the tokens in a string and returns them as a list.
 
-tokens_re = re.compile(r'('+'|'.join(regex_str)+')', re.VERBOSE | re.IGNORECASE)
-emoticon_re = re.compile(r'^'+emoticons_str+'$', re.VERBOSE | re.IGNORECASE)
- 
-def tokenize(s):
-    return tokens_re.findall(s)
-Removing stop-words,punctuations and rt,via words :
 
-from nltk.corpus import stopwords
-import string
+Processing tweets:
 
-punctuation = list(string.punctuation)
-stop = stopwords.words('english') + punctuation + ['rt', 'via']
-In order to keep track of the frequencies while we are processing the tweets, we can use collections.Counter() which internally is a dictionary (term: count) with some useful methods like most_common():
 
-with open(fname, 'r') as f:
-    count_all = Counter()
-    for line in f:
-        tweet = json.loads(line)
-        # Create a list with all the terms
-        terms_stop = [term for term in preprocess(tweet['text']) if term not in stop]
-        # Update the counter
-	    #terms_single = set(terms_all)
-		# Count hashtags only
-        terms_hash = [term for term in preprocess(tweet['text']) 
-              if term.startswith('#')]
-# Count terms only (no hashtags, no mentions)
-        terms_only = [term for term in preprocess(tweet['text']) 
-              if term not in stop and
-              not term.startswith(('#', '@'))] 
-              # mind the ((double brackets))
-              # startswith() takes a tuple (not a list) if 
-              # we pass a list of inputs
-####Python TextBlob Sentiment Analysis
+class Preprocess(object):
+
+
+   emoticons_str = r"""
+           (?:
+           [:=;] # Eyes
+           [oO\-]? # Nose (optional)
+           [D\)\]\(\]/\\OpP] # Mouth
+            )"""
+
+   regex_str = [
+       emoticons_str,
+       r'<[^>]+>',  # HTML tags
+       r'(?:@[\w_]+)',  # @-mentions
+       r"(?:\#+[\w_]+[\w\'_\-]*[\w_]+)",  # hash-tags
+       r'http[s]?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+',  # URLs
+       r'(?:(?:\d+,?)+(?:\.?\d+)?)',  # numbers
+       r"(?:[a-z][a-z'\-_]+[a-z])",  # words with - and '
+       r'(?:[\w_]+)',  # other words
+       r'(?:\S)'  # anything else
+   ]
+
+   tokens_re = re.compile(r'('+'|'.join(regex_str)+')', re.VERBOSE | re.IGNORECASE)
+   emoticon_re = re.compile(r'^'+emoticons_str+'$', re.VERBOSE | re.IGNORECASE)
+
+   def tokenize(self, s):
+       return self.tokens_re.findall(s)
+
+   def preprocess(self, s, lowercase=True):
+       tokens = self.tokenize(s)
+       if lowercase:
+           tokens = [token if self.emoticon_re.search(token) else token.lower() for token in tokens]
+       return tokens
+
+
+
+
+
+
+
+
+
 
 Sentiment Analysis refers to the process of taking natural language to identify and extract subjective information. You can take text, run it through the TextBlob and the program will spit out if the text is positive, neutral, or negative by analyzing the language used in the text.
 
-Sentiment Analysis	
+Sentiment Analysis
 Text	If that is not cool enough for you than that is a you problem.
 Polarity	-0.0875
 Subjectivity	0.575
@@ -118,25 +135,40 @@ Polarity - a measure of the negativity, the neutralness, or the positivity of th
 Classification - either pos or neg indicating if the text is positive or negative
 To calculate the overall sentiment, we look at the polarity score:
 
-Positive – from .01 to 1
-Neutral – 0
-Negative – from –.01 to -1
-for line in f:
-        tweet = json.loads(line)
-        # Create a list with all the terms
-        blob = TextBlob(tweet["text"])
-        cout+=1
-        lis.append(blob.sentiment.polarity)
-        #print blob.sentiment.subjectivity
-        #print (os.listdir(tweet["text"]))
-        if blob.sentiment.polarity < 0:
-            sentiment = "negative"
-            neg+=blob.sentiment.polarity
-            n+=1
-        elif blob.sentiment.polarity == 0:
-            sentiment = "neutral"
-            net+=1
-        else:
-            sentiment = "positive"
-            pos+=blob.sentiment.polarity
-            p+=1
+
+tweets = Database.find(collection='twitter_search', query={})
+lis = []
+neg = 0.0
+n = 0.0
+net = 0.0
+pos = 0.0
+p = 0.0
+cout = 0
+for tweet in tweets:
+   # Create a list with all the terms
+   blob = TextBlob(tweet["text"])
+   cout += 1
+   lis.append(blob.sentiment.polarity)
+   # print blob.sentiment.subjectivity
+   # print (os.listdir(tweet["text"]))
+   if blob.sentiment.polarity < 0:
+       sentiment = "negative"
+       neg += blob.sentiment.polarity
+       n += 1
+   elif blob.sentiment.polarity == 0:
+       sentiment = "neutral"
+       net += 1
+   else:
+       sentiment = "positive"
+       pos += blob.sentiment.polarity
+       p += 1
+
+   # output sentiment
+
+print "Total tweets", len(lis)
+print "Positive ", float(p / cout) * 100, "%"
+print "Negative ", float(n / cout) * 100, "%"
+print "Neutral ", float(net / len(lis)) * 100, "%"
+
+
+
